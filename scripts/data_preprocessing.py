@@ -195,6 +195,10 @@ class ReviewPreprocessor:
             # Convert the input to a string type (safety check)
             text = str(text)
 
+            # Keep only letters A–Z and spaces
+            text = re.sub(r'[^a-zA-Z ]+', ' ', text)
+
+
             # Use regex to replace multiple whitespace characters (spaces, tabs, newlines) with a single space
             text = re.sub(r'\s+', ' ', text)
 
