@@ -172,32 +172,13 @@ class ReviewPreprocessor:
 
         before_count = len(self.df)
 
-        # Drop duplicates, keep the first occurrence
         self.df = self.df.drop_duplicates(subset=['review_text', 'user_name'], keep='first')
 
         removed = before_count - len(self.df)
         print(f"Removed {removed} duplicate reviews")
 
-        # Record stats
         self.stats['duplicates_removed'] = removed
         self.stats['count_after_duplicates'] = len(self.df)
-
-    def remove_non_english(self):
-        """Remove non-English reviews"""
-        print("\n[NEW] Removing non-English reviews...")
-
-        before_count = len(self.df)
-
-        # Keep only reviews that contain at least one English letter
-        self.df = self.df[self.df['review_text'].str.contains(r'[a-zA-Z]', regex=True)]
-
-        removed = before_count - len(self.df)
-        print(f"Removed {removed} non-English reviews")
-
-        # Record stats
-        self.stats['non_english_removed'] = removed
-        self.stats['count_after_non_english'] = len(self.df)
-
 
 
     def clean_text(self):
@@ -405,9 +386,8 @@ class ReviewPreprocessor:
 
         # Run each step of the pipeline in sequence
         self.check_missing_data()
-        self.remove_duplicates() 
-        self.remove_non_english()
-        self.handle_missing_values()
+        self.handle_missing_values()    
+        self.remove_duplicates()        
         self.normalize_dates()
         self.clean_text()
         self.validate_ratings()
