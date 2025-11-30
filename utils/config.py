@@ -5,7 +5,7 @@ import os
 from dotenv import load_dotenv
 
 # --- Project root ---
-PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))  # main_folder
+PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
 
 # --- Load .env ---
 dotenv_path = os.path.join(PROJECT_ROOT, '.env')
