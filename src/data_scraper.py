@@ -17,49 +17,56 @@ from utils.config import APP_IDS, BANK_NAMES, SCRAPING_CONFIG, DATA_PATHS
 
 
 class PlayStoreScraper:
-    """Scraper for Google Play Store reviews for multiple banks."""
+    """Scraper for collecting Google Play Store reviews for multiple banks.
+
+    This class manages:
+      - Fetching app metadata
+      - Scraping reviews from Google Play
+      - Structuring and saving collected data
+      - Displaying review samples
+    """
 
     def __init__(self):
-        """Initialize the scraper with configuration from utils.config."""
+        """Initialize scraper with configuration."""
         self.app_ids = APP_IDS
         self.bank_names = BANK_NAMES
-        self.reviews_per_bank = SCRAPING_CONFIG.get('reviews_per_bank', 500)
-        self.lang = SCRAPING_CONFIG.get('lang', 'en')
-        self.country = SCRAPING_CONFIG.get('country', 'ET')
-        self.max_retries = SCRAPING_CONFIG.get('max_retries', 3)
+        self.reviews_per_bank = SCRAPING_CONFIG.get("reviews_per_bank", 500)
+        self.lang = SCRAPING_CONFIG.get("lang", "en")
+        self.country = SCRAPING_CONFIG.get("country", "ET")
+        self.max_retries = SCRAPING_CONFIG.get("max_retries", 3)
 
     def get_app_info(self, app_id: str) -> dict | None:
-        """Fetch metadata about an app from Google Play Store.
+        """Fetch metadata for a Google Play app.
 
         Args:
-            app_id (str): Google Play app ID.
+            app_id (str): Unique Google Play Store application ID.
 
         Returns:
-            dict | None: App info including title, rating, total reviews, installs, etc.
+            dict | None: A dictionary with app metadata or None on failure.
         """
         try:
             result = app(app_id, lang=self.lang, country=self.country)
             return {
-                'app_id': app_id,
-                'title': result.get('title', 'N/A'),
-                'score': result.get('score', 0),
-                'ratings': result.get('ratings', 0),
-                'reviews': result.get('reviews', 0),
-                'installs': result.get('installs', 'N/A')
+                "app_id": app_id,
+                "title": result.get("title", "N/A"),
+                "score": result.get("score", 0),
+                "ratings": result.get("ratings", 0),
+                "reviews": result.get("reviews", 0),
+                "installs": result.get("installs", "N/A"),
             }
         except Exception as e:
             print(f"Error fetching app info for {app_id}: {e}")
             return None
 
     def scrape_reviews(self, app_id: str, count: int = 500) -> list[dict]:
-        """Scrape reviews for a single app with retries.
+        """Scrape reviews for a specific Google Play application.
 
         Args:
-            app_id (str): Google Play app ID.
+            app_id (str): Google Play Store application ID.
             count (int, optional): Number of reviews to fetch. Defaults to 500.
 
         Returns:
-            list[dict]: List of raw review dictionaries.
+            list[dict]: Collected review JSON objects.
         """
         print(f"\nScraping reviews for {app_id}...")
         for attempt in range(self.max_retries):
@@ -70,7 +77,7 @@ class PlayStoreScraper:
                     country=self.country,
                     sort=Sort.NEWEST,
                     count=count,
-                    filter_score_with=None
+                    filter_score_with=None,
                 )
                 print(f"Successfully scraped {len(result)} reviews")
                 return result
@@ -82,45 +89,48 @@ class PlayStoreScraper:
                 else:
                     print("Max retries reached. Skipping this app.")
                     return []
+
         return []
 
     def process_reviews(self, reviews_data: list[dict], bank_code: str) -> list[dict]:
-        """Convert raw reviews into a structured format.
+        """Structure a list of raw review objects.
 
         Args:
-            reviews_data (list[dict]): Raw review data from scraper.
-            bank_code (str): Bank code to annotate reviews with.
+            reviews_data (list[dict]): Raw Google Play review items.
+            bank_code (str): Bank identifier to attach to each review.
 
         Returns:
-            list[dict]: Processed reviews.
+            list[dict]: Structured review dictionaries.
         """
         processed = []
         for review in reviews_data:
-            processed.append({
-                'review_id': review.get('reviewId', ''),
-                'review_text': review.get('content', ''),
-                'rating': review.get('score', 0),
-                'review_date': review.get('at', datetime.now()),
-                'user_name': review.get('userName', 'Anonymous'),
-                'thumbs_up': review.get('thumbsUpCount', 0),
-                'reply_content': review.get('replyContent', None),
-                'bank_code': bank_code,
-                'bank_name': self.bank_names.get(bank_code, 'Unknown'),
-                'app_id': review.get('reviewCreatedVersion', 'N/A'),
-                'source': 'Google Play'
-            })
+            processed.append(
+                {
+                    "review_id": review.get("reviewId", ""),
+                    "review_text": review.get("content", ""),
+                    "rating": review.get("score", 0),
+                    "review_date": review.get("at", datetime.now()),
+                    "user_name": review.get("userName", "Anonymous"),
+                    "thumbs_up": review.get("thumbsUpCount", 0),
+                    "reply_content": review.get("replyContent", None),
+                    "bank_code": bank_code,
+                    "bank_name": self.bank_names.get(bank_code, "Unknown"),
+                    "app_id": review.get("reviewCreatedVersion", "N/A"),
+                    "source": "Google Play",
+                }
+            )
         return processed
 
     def scrape_all_banks(self) -> pd.DataFrame:
-        """Orchestrate the scraping process for all banks.
+        """Run scraping for all banks and save results.
 
-        Steps:
+        Workflow:
             1. Fetch app metadata
             2. Scrape reviews for each bank
-            3. Save raw reviews and app info as CSV
+            3. Save raw metadata & reviews to CSV
 
         Returns:
-            pd.DataFrame: Combined reviews for all banks.
+            pd.DataFrame: DataFrame containing all collected reviews.
         """
         all_reviews = []
         app_info_list = []
@@ -129,20 +139,27 @@ class PlayStoreScraper:
         print("Starting Google Play Store Review Scraper")
         print("=" * 60)
 
-        # Fetch app metadata
+        # Step 1: Fetch app metadata
         print("\n[1/2] Fetching app information...")
         for bank_code, app_id in self.app_ids.items():
             info = self.get_app_info(app_id)
             if info:
-                info.update({'bank_code': bank_code, 'bank_name': self.bank_names[bank_code]})
+                info.update(
+                    {
+                        "bank_code": bank_code,
+                        "bank_name": self.bank_names.get(bank_code, "Unknown"),
+                    }
+                )
                 app_info_list.append(info)
 
         if app_info_list:
-            os.makedirs(DATA_PATHS['raw'], exist_ok=True)
-            pd.DataFrame(app_info_list).to_csv(f"{DATA_PATHS['raw']}/app_info.csv", index=False)
+            os.makedirs(DATA_PATHS["raw"], exist_ok=True)
+            pd.DataFrame(app_info_list).to_csv(
+                f"{DATA_PATHS['raw']}/app_info.csv", index=False
+            )
             print(f"App information saved to {DATA_PATHS['raw']}/app_info.csv")
 
-        # Scrape reviews for each bank
+        # Step 2: Scrape reviews for each bank
         print("\n[2/2] Scraping reviews...")
         for bank_code, app_id in tqdm(self.app_ids.items(), desc="Banks"):
             reviews_data = self.scrape_reviews(app_id, self.reviews_per_bank)
@@ -151,32 +168,35 @@ class PlayStoreScraper:
                 all_reviews.extend(processed)
             time.sleep(2)  # polite delay
 
-        # Save all reviews
+        # Save all collected reviews
         if all_reviews:
             df = pd.DataFrame(all_reviews)
-            os.makedirs(DATA_PATHS['raw'], exist_ok=True)
-            df.to_csv(DATA_PATHS['raw_reviews'], index=False)
+            os.makedirs(DATA_PATHS["raw"], exist_ok=True)
+            df.to_csv(DATA_PATHS["raw_reviews"], index=False)
+
             print(f"\nScraping complete. Total reviews collected: {len(df)}")
             for bank_code in self.bank_names.keys():
-                count = len(df[df['bank_code'] == bank_code])
+                count = len(df[df["bank_code"] == bank_code])
                 print(f"{self.bank_names[bank_code]}: {count} reviews")
+
             return df
-        else:
-            print("No reviews collected.")
-            return pd.DataFrame()
+
+        print("No reviews collected.")
+        return pd.DataFrame()
 
     def display_sample_reviews(self, df: pd.DataFrame, n: int = 3) -> None:
-        """Display sample reviews for each bank.
+        """Print sample reviews for each bank.
 
         Args:
-            df (pd.DataFrame): DataFrame containing scraped reviews.
-            n (int, optional): Number of reviews per bank to display. Defaults to 3.
+            df (pd.DataFrame): DataFrame containing review data.
+            n (int): Number of samples per bank.
         """
         print("\n" + "=" * 60)
         print("Sample Reviews")
         print("=" * 60)
+
         for bank_code in self.bank_names.keys():
-            bank_df = df[df['bank_code'] == bank_code]
+            bank_df = df[df["bank_code"] == bank_code]
             if not bank_df.empty:
                 print(f"\n{self.bank_names[bank_code]}:")
                 print("-" * 60)
