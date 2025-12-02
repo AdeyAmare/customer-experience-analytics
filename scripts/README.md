@@ -21,6 +21,12 @@ Execution Scripts and Their Purpose
 
 - Effect: Runs multiple sentiment models (VADER, TextBlob, DistilBERT), performs TF-IDF keyword extraction, assigns themes, aggregates sentiment, and saves the final analytical results to ```data/processed/```.
 
+4. ```postgres_connection.py```
+
+Purpose: Initiates the ETL phase to load processed review data into PostgreSQL.
+
+Effect: Reads the final processed review CSV, inserts unique banks into the banks table, maps bank_ids, inserts reviews into the reviews table, and manages database connections. Designed to handle duplicates safely and log progress.
+
 ## Pipeline Execution Order
 The scripts must be executed sequentially to ensure each stage has the necessary input data:
 
@@ -29,3 +35,5 @@ Run the data collection: ```python run_data_scraper.py```
 Run the data cleaning: ```python run_data_preprocesser.py```
 
 Run the analysis: ```python run_sentiment_thematic_analysis.py```
+
+Load the processed data into PostgreSQL: ```python postgres_connection.py```
