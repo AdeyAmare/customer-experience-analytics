@@ -287,6 +287,7 @@ class ThematicNLP:
         if "review_text" not in df.columns:
             raise ValueError("Input DataFrame must contain a 'review_text' column.")
         self.df = df.copy()
+        self.vectorizer_params = {'min_df': 2, 'max_df': 0.85, 'stop_words': 'english', 'ngram_range': (1, 2)}
 
     def preprocess_text_for_tfidf(self, text):
         """Preprocess a single text string for TF-IDF.
@@ -343,7 +344,7 @@ class ThematicNLP:
 
         print("Calculating TF-IDF scores...")
         # Initialize vectorizer with same configuration as original
-        vectorizer = TfidfVectorizer(ngram_range=(1, 2), max_df=0.85, min_df=2)
+        vectorizer = TfidfVectorizer(**self.vectorizer_params)
         # Fit-transform the preprocessed corpus
         tfidf_matrix = vectorizer.fit_transform(self.df["preprocessed_text"])
         feature_names = vectorizer.get_feature_names_out()
